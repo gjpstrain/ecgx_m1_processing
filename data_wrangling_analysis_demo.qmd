@@ -23,6 +23,8 @@ conflicts_prefer(dplyr::select(), dplyr::filter(), lme4::lmer())
 
 m1_ST <- read_csv("exp_data/ECG_X_EXP1_m1_anon_ST.csv")
 
+m1_JT <- read_csv("exp_data/ECG_X_EXP1_m1_anon_JT.csv")
+
 ```
 
 ```{r}
@@ -97,7 +99,7 @@ wrangle_data <- function(anon_file) {
            value = ., envir = .GlobalEnv)
 }
 
-wrangle_data(m1_ST)
+wrangle_data(m1_JT)
 ```
 
 ```{r}
