@@ -21,7 +21,7 @@ library(ggdist)
 
 conflicts_prefer(dplyr::select(), dplyr::filter(), lme4::lmer())
 
-m1_ST <- read_csv("exp_data/ECG_X_EXP1_m1_ST.csv")
+m1_ST <- read_csv("exp_data/ECG_X_EXP1_m1_anon_ST.csv")
 
 ```
 
@@ -121,7 +121,7 @@ ECG_X_EXP1_m1_ST_tidy %>%
   theme_ggdist() +
   labs(x = "Condition",
        y = "% Correct",
-       title = "ST - new instructions") +
+       title = "ST - N = 103") +
   theme(legend.position = "none")
 
 cowplot::plot_grid(ST, ST_minim)
