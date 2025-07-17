@@ -21,11 +21,15 @@ library(ggdist)
 
 conflicts_prefer(dplyr::select(), dplyr::filter(), lme4::lmer())
 
-m1_ST <- read_csv("exp_data/ECG_X_EXP1_m1_anon_ST.csv")
+m1_ST <- read_csv("exp_data/ECG_X_EXP1_m1_anon_ST.csv") %>%
+  mutate(grand_condition = "ST")
 
-m1_JT <- read_csv("exp_data/ECG_X_EXP1_m1_anon_JT.csv")
+m1_JT <- read_csv("exp_data/ECG_X_EXP1_m1_anon_JT.csv") %>%
+  mutate(grand_condition = "JT")
 
-m1_STJ <- read_csv("exp_data/ECG_X_EXP1_m1_anon_STJ.csv")
+
+m1_STJ <- read_csv("exp_data/ECG_X_EXP1_m1_anon_STJ.csv") %>%
+  mutate(grand_condition = "STJ")
 
 ```
 
@@ -64,7 +68,9 @@ wrangle_data <- function(anon_file) {
              "NS_button.timesOn",
              "exp_trials_loop.thisN",
              "unique_item_no",
-             "answer")) %>%
+             "answer",
+             "grand_condition")) %>%
+    mutate(item = image_path) %>%
     mutate(image_path = str_replace(image_path, ".*/", ""),
            image_path = str_remove(image_path, "\\.png$")) %>%
     separate(image_path, sep = "_",
@@ -96,11 +102,15 @@ wrangle_data <- function(anon_file) {
     unite("reaction_time",
           STEMI_button_RT,
           NSTEMI_button_RT, na.rm = T) %>%
+    mutate(correct = participant_answer == answer) %>%
+    
     mutate(reaction_time = as.numeric(reaction_time)) %>%
     assign(paste0(unique(anon_file$expName), "_tidy"),
            value = ., envir = .GlobalEnv)
 }
 
+wrangle_data(m1_JT)
+wrangle_data(m1_ST)
 wrangle_data(m1_STJ)
 ```
 
@@ -115,7 +125,9 @@ ECG_X_EXP1_m1_STJ_tidy %>%
             mean_RT = mean(reaction_time),
             sd_RT = sd(reaction_time),
             total_exp_correct = sum(correct)) %>%
-  ggplot(aes(x = interaction(vis_condition,ST_condition), y = percent_correct, fill = interaction(vis_condition,ST_condition))) +
+  ggplot(aes(x = interaction(vis_condition,ST_condition),
+             y = percent_correct,
+             fill = interaction(vis_condition,ST_condition))) +
   geom_bar(stat = "identity", position = position_dodge()) +
   geom_errorbar(aes(ymin = percent_correct - sd_correct, ymax = percent_correct + sd_correct),
                 position = position_dodge(0.9), width = 0.3) +
@@ -125,10 +137,41 @@ ECG_X_EXP1_m1_STJ_tidy %>%
   theme_ggdist() +
   labs(x = "Condition",
        y = "% Correct",
-       title = "JT - N = 100 (incomplete)") +
+       title = "STJ - N = 98 (incomplete)") +
   theme(legend.position = "none")
 
 cowplot::plot_grid(ST, ST_minim)
+```
+```{r}
+#| label: further-analysis
+
+combined_df <- rbind(ECG_X_EXP1_m1_JT_tidy,
+                     ECG_X_EXP1_m1_ST_tidy,
+                     ECG_X_EXP1_m1_STJ_tidy)
+
+# first, check whether there is an effect of ST/NST
+# treat image_path as item random effect term
+
+st_nst_model <- buildmer(correct ~ ST_condition +
+                           (1 + ST_condition | participant) +
+                           (1 + ST_condition | item),
+                         data = combined_df,
+                         family = binomial)
+
+combined_df %>% group_by(ST_condition) %>%
+  summarise(percent_correct = mean(correct) * 100,
+            sd_correct = sd(correct),
+            mean_RT = mean(reaction_time),
+            sd_RT = sd(reaction_time),
+            total_exp_correct = sum(correct)) %>%
+  ggplot(aes(x = ST_condition, y = percent_correct)) +
+  geom_bar(stat = "identity", position = position_dodge())
+  
+
+st_nst_df <- combined_df %>% filter(ST_condition == "nst")
+
+
+   
 ```
 
 
