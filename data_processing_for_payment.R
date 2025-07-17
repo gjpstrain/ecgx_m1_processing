@@ -22,7 +22,7 @@ process_for_payment("exp_data/ECG_X_EXP1_m1_ST.csv", "ST")
 
 process_for_payment("exp_data/ECG_X_EXP1_m1_JT.csv", "JT")
 
-process_for_payment("exp_data/ECG_X_EXP1_m1_SJT.csv", "SJT")
+process_for_payment("exp_data/ECG_X_EXP1_m1_STJ.csv", "STJ")
 
 
 

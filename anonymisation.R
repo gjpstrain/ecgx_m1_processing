@@ -28,7 +28,7 @@ anonymise_function("exp_data/ECG_X_EXP1_m1_ST.csv", "exp_data/passedST.csv", "ST
 
 anonymise_function("exp_data/ECG_X_EXP1_m1_JT.csv", "exp_data/passedJT.csv", "JT")
 
-anonymise_function("exp_data/ECG_X_EXP1_m1_SJT.csv", "exp_data/passedSJT.csv", "SJT")
+anonymise_function("exp_data/ECG_X_EXP1_m1_STJ.csv", "exp_data/passedSTJ.csv", "STJ")
 
 
 

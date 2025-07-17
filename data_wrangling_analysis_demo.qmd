@@ -25,6 +25,8 @@ m1_ST <- read_csv("exp_data/ECG_X_EXP1_m1_anon_ST.csv")
 
 m1_JT <- read_csv("exp_data/ECG_X_EXP1_m1_anon_JT.csv")
 
+m1_STJ <- read_csv("exp_data/ECG_X_EXP1_m1_anon_STJ.csv")
+
 ```
 
 ```{r}
@@ -68,7 +70,7 @@ wrangle_data <- function(anon_file) {
     separate(image_path, sep = "_",
              into = c("vis_condition", "subj", "lead", NA, NA, "ST_condition")) %>%
     mutate(vis_condition = case_when(
-      vis_condition %in% c("J", "JT", "JTI", "ST", "SJT") ~ "vis",
+      vis_condition %in% c("J", "JT", "JTI", "ST", "STJ") ~ "vis",
       TRUE ~ vis_condition
       )) %>%
     mutate(ST_condition = recode(ST_condition,
@@ -99,13 +101,13 @@ wrangle_data <- function(anon_file) {
            value = ., envir = .GlobalEnv)
 }
 
-wrangle_data(m1_JT)
+wrangle_data(m1_STJ)
 ```
 
 ```{r}
 # take a look at some descriptive statistics
 
-ECG_X_EXP1_m1_JT_tidy %>%
+ECG_X_EXP1_m1_STJ_tidy %>%
   mutate(correct = participant_answer == answer) %>%
   group_by(vis_condition,ST_condition) %>%
   summarise(percent_correct = mean(correct) * 100,
