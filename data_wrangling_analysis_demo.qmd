@@ -18,6 +18,8 @@ library(conflicted)
 library(buildmer)
 library(GLMMadaptive)
 library(ggdist)
+library(ggpubr)
+library(emmeans)
 
 conflicts_prefer(dplyr::select(), dplyr::filter(), lme4::lmer())
 
@@ -112,12 +114,24 @@ wrangle_data <- function(anon_file) {
 wrangle_data(m1_JT)
 wrangle_data(m1_ST)
 wrangle_data(m1_STJ)
+
+# create combined dataframe for later analysis 
+
+combined_df <- rbind(ECG_X_EXP1_m1_JT_tidy,
+                     ECG_X_EXP1_m1_ST_tidy,
+                     ECG_X_EXP1_m1_STJ_tidy)
 ```
 
 ```{r}
+#| label: plot-bars
+#| include: true
+#| out-width: 200%
+
 # take a look at some descriptive statistics
 
-ECG_X_EXP1_m1_STJ_tidy %>%
+plot_bars <- function (df, title) {
+
+df %>%
   mutate(correct = participant_answer == answer) %>%
   group_by(vis_condition,ST_condition) %>%
   summarise(percent_correct = mean(correct) * 100,
@@ -132,25 +146,24 @@ ECG_X_EXP1_m1_STJ_tidy %>%
   geom_errorbar(aes(ymin = percent_correct - sd_correct, ymax = percent_correct + sd_correct),
                 position = position_dodge(0.9), width = 0.3) +
   geom_text(aes(label = round(percent_correct)), vjust = 2) +
-  #coord_cartesian(ylim = c(20,100)) +
+  coord_cartesian(ylim = c(20,100)) +
   scale_y_continuous(labels = function(x) paste0(x, "%")) +
   theme_ggdist() +
-  labs(x = "Condition",
-       y = "% Correct",
-       title = "STJ - N = 98 (incomplete)") +
-  theme(legend.position = "none")
+  labs(y = "% Correct",
+       title = title) +
+  theme(legend.position = "none",
+        axis.title.x = element_blank())
 
-cowplot::plot_grid(ST, ST_minim)
+}
+
+ggarrange(plot_bars(ECG_X_EXP1_m1_JT_tidy, "JT"),
+          plot_bars(ECG_X_EXP1_m1_ST_tidy, "ST"),
+          plot_bars(ECG_X_EXP1_m1_STJ_tidy, "STJ"),
+          ncol = 3)
 ```
+
 ```{r}
-#| label: further-analysis
-
-combined_df <- rbind(ECG_X_EXP1_m1_JT_tidy,
-                     ECG_X_EXP1_m1_ST_tidy,
-                     ECG_X_EXP1_m1_STJ_tidy)
-
 # first, check whether there is an effect of ST/NST
-# treat image_path as item random effect term
 
 st_nst_model <- buildmer(correct ~ ST_condition +
                            (1 + ST_condition | participant) +
@@ -158,20 +171,66 @@ st_nst_model <- buildmer(correct ~ ST_condition +
                          data = combined_df,
                          family = binomial)
 
-combined_df %>% group_by(ST_condition) %>%
-  summarise(percent_correct = mean(correct) * 100,
-            sd_correct = sd(correct),
-            mean_RT = mean(reaction_time),
-            sd_RT = sd(reaction_time),
-            total_exp_correct = sum(correct)) %>%
-  ggplot(aes(x = ST_condition, y = percent_correct)) +
-  geom_bar(stat = "identity", position = position_dodge())
-  
+# no significant effect of ST vs NST on performance
+```
 
-st_nst_df <- combined_df %>% filter(ST_condition == "nst")
+```{r}
 
+# then, check vis vs nvis
 
-   
+vis_nvis_model <- buildmer(correct ~ vis_condition +
+                           (1 + vis_condition | participant) +
+                           (1 + vis_condition | item),
+                         data = combined_df,
+                         family = binomial)
+
+vis_nvis_em_model <- vis_nvis_model@model
+
+emmeans(vis_nvis_em_model, pairwise ~ vis_condition)
+
+# significant effect of visualisation presence on performance
+
+```
+
+```{r}
+# next, for visualisation conditions, see if there is an effect of vis type
+
+vis_type_df <- combined_df %>% filter(vis_condition == "vis")
+
+vis_type_model <- buildmer(correct ~ grand_condition +
+                           (1 + grand_condition | participant) +
+                           (1 + grand_condition | item),
+                         data = vis_type_df,
+                         family = binomial)
+
+vis_type_em_model <- vis_type_model@model
+
+emmeans(vis_type_em_model, pairwise ~ grand_condition)
+
+# no significant differences between vis types when taking into account NST and ST
+```
+
+```{r}
+# check for potential interaction with NST/ST
+
+vis_type__interact_model <- buildmer(correct ~ grand_condition * ST_condition +
+                           (1 + grand_condition | participant) +
+                           (1 + grand_condition | item),
+                         data = vis_type_df,
+                         family = binomial)
+
+vis_type_interact_em_model <- vis_type__interact_model@model
+
+emm <-emmeans(vis_type_interact_em_model, pairwise ~ grand_condition:ST_condition)
+
+summary(emm, type = "response")
+
+# significant effect of both vis_type and ST condition when taking both into account
+# interaction present
+
+# JT better with NST
+# ShadeT better with ST
+# STJ better with ST
 ```
 
 
